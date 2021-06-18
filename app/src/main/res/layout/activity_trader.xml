@@ -14,12 +14,12 @@
         android:layout_marginLeft="8dp"
         android:layout_marginStart="8dp"
         android:padding="10dp"
-        android:textColor="@color/grey"
+        android:textColor="@color/colorPrimary"
         android:textSize="20sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:text="Santiago" />
+        tools:text="Erick" />
 
     <LinearLayout
         android:id="@+id/infoPanel"

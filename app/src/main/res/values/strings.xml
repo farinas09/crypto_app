@@ -7,7 +7,7 @@
     <string name="start">Start</string>
     <string name="generating_new_cryptos">generating new cryptos…</string>
     <string name="buy">Buy</string>
-    <string name="available_message">available %s</string>
+    <string name="available_message">Available %s</string>
     <string name="coin_info">%s %s</string>
     <string name="coin_icon">Coin icon</string>
     <string name="error_while_connecting_to_the_server">Error while connecting to the server</string>

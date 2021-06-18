@@ -32,7 +32,7 @@ class CryptosAdapter (val cryptosAdapterListener: CryptosAdapterListener):
 
         Picasso.get().load(crypto.imageUrl).into(holder.binding.image)
         holder.binding.nameTextView.text = crypto.name
-        holder.binding.availableTextView.text = crypto.available.toString()
+        holder.binding.availableTextView.text = holder.itemView.context.getString(R.string.available_message, crypto.available.toString())
         holder.binding.buyButton.setOnClickListener {
             cryptosAdapterListener.onBuyCryptoClicked(crypto)
         }

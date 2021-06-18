@@ -57,7 +57,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="start"
                 android:padding="10dp"
-                tools:text="Bitvoin"/>
+                tools:text="Bitcoin"/>
 
             <TextView
                 android:id="@+id/availableTextView"
@@ -70,6 +70,8 @@
                 android:id="@+id/buyButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:backgroundTint="@color/colorAccent"
+                android:textColor="@color/grey"
                 android:drawablePadding="5dp"
                 android:padding="10dp"
                 android:text="@string/buy"/>
