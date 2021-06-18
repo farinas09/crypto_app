@@ -5,9 +5,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.farinas.cryptotrader.R
-import com.farinas.cryptotrader.databinding.ActivityTraderBinding
 import com.farinas.cryptotrader.databinding.CryptoRowBinding
 import com.farinas.cryptotrader.model.Crypto
+import com.squareup.picasso.Picasso
 
 /**
  * Created by efarinas on $ 6/17/21.
@@ -30,7 +30,7 @@ class CryptosAdapter (val cryptosAdapterListener: CryptosAdapterListener):
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val crypto = cryptoList[position]
 
-        //Picasso.get().load(crypto.imageUrl).into(holder.binding.image)
+        Picasso.get().load(crypto.imageUrl).into(holder.binding.image)
         holder.binding.nameTextView.text = crypto.name
         holder.binding.availableTextView.text = crypto.available.toString()
         holder.binding.buyButton.setOnClickListener {

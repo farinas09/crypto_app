@@ -28,16 +28,16 @@ class FirestoreService (val firebaseFirestore: FirebaseFirestore) {
     }
 
     fun updateCrypto(crypto: Crypto) {
-        firebaseFirestore.collection(CRYPTOS_COLLECTION).document(crypto.getDocumentId())
+        firebaseFirestore.collection(CRYPTOS_COLLECTION).document(crypto.id)
             .update("available", crypto.available)
     }
 
     fun getCryptos(callback: Callback<List<Crypto>?>) {
         firebaseFirestore.collection(CRYPTOS_COLLECTION).get()
-            .addOnSuccessListener { result -> for(document in result) {
+            .addOnSuccessListener { result ->
+                for(document in result) {
                 val cryptoList = result.toObjects(Crypto::class.java)
                 callback.onSuccess(cryptoList)
-
             }
             }
             .addOnFailureListener { exception -> callback.onFailded(exception) }
