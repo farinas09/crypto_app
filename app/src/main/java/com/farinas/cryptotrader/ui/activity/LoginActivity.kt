@@ -29,6 +29,20 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         firestoreService = FirestoreService(FirebaseFirestore.getInstance())
         setContentView(binding.root)
+        if(auth.currentUser != null) {
+            firestoreService.findUserById(auth.currentUser!!.uid, object: Callback<User?>{
+                override fun onSuccess(result: User?) {
+                    if(result!=null)
+                    startMainActivity(result.username)
+                }
+
+                override fun onFailded(exception: Exception) {
+                    showErrorMessage(binding.root)
+                }
+
+            })
+
+        }
     }
 
 

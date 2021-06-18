@@ -125,6 +125,16 @@ class TraderActivity : AppCompatActivity(), CryptosAdapterListener {
     }
 
     override fun onBuyCryptoClicked(crypto: Crypto) {
-        TODO("Not yet implemented")
+        if(crypto.available>0) {
+            for(userCrypto in user!!.cryptosList!!) {
+                if(userCrypto.name == crypto.name) {
+                    userCrypto.available+=1
+                    break
+                }
+            }
+            crypto.available--
+            firestoreService.updateUser(user!!, null)
+            firestoreService.updateCrypto(crypto)
+        }
     }
 }
