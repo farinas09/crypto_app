@@ -29,20 +29,6 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         firestoreService = FirestoreService(FirebaseFirestore.getInstance())
         setContentView(binding.root)
-        if(auth.currentUser != null) {
-            firestoreService.findUserById(auth.currentUser!!.uid, object: Callback<User?>{
-                override fun onSuccess(result: User?) {
-                    if(result!=null)
-                    startMainActivity(result.username)
-                }
-
-                override fun onFailded(exception: Exception) {
-                    showErrorMessage(binding.root)
-                }
-
-            })
-
-        }
     }
 
 
@@ -53,11 +39,22 @@ class LoginActivity : AppCompatActivity() {
             auth.signInAnonymously()
                 .addOnCompleteListener{task ->
                     if(task.isSuccessful) {
+                        firestoreService.findUserById(username, object : Callback<User?>{
+                            override fun onSuccess(result: User?) {
+                                if(result == null) {
+                                    val user = User()
+                                    user.username = username
+                                    saveUserAndStartMainActivity(user, view)
+                                } else {
+                                    startMainActivity(username)
+                                }
+                            }
 
-                        val user = User()
-                        user.username = username
-                        user.uid = auth.currentUser?.uid.toString()
-                        saveUserAndStartMainActivity(user, view)
+                            override fun onFailded(exception: Exception) {
+                                showErrorMessage(view)
+                            }
+
+                        })
                     } else {
                         showErrorMessage(view)
                         view.isEnabled = true
@@ -73,7 +70,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun saveUserAndStartMainActivity(user: User, view: View) {
-        firestoreService.setDocument(user, USERS_COLLECTION, user.uid, object : Callback<Void>{
+        firestoreService.setDocument(user, USERS_COLLECTION, user.username, object : Callback<Void>{
             override fun onSuccess(result: Void?) {
                 startMainActivity(user.username)
             }

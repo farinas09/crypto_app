@@ -28,7 +28,8 @@ class FirestoreService (val firebaseFirestore: FirebaseFirestore) {
     }
 
     fun updateCrypto(crypto: Crypto) {
-        firebaseFirestore.collection(CRYPTOS_COLLECTION).document(crypto.id)
+        println(crypto.getDocumentId())
+        firebaseFirestore.collection(CRYPTOS_COLLECTION).document(crypto.getDocumentId())
             .update("available", crypto.available)
     }
 
@@ -53,5 +54,32 @@ class FirestoreService (val firebaseFirestore: FirebaseFirestore) {
                 }
                 }
             .addOnFailureListener { exception -> callback.onFailded(exception) }
+    }
+
+    fun listenForUpdates(cryptos: List<Crypto>, listener: RealtimeDataListener<Crypto>){
+        val cryptoRef = firebaseFirestore.collection(CRYPTOS_COLLECTION)
+        for(crypto in cryptos) {
+            cryptoRef.document(crypto.getDocumentId()).addSnapshotListener{ snapshot,e ->
+                if(e != null) {
+                    listener.onError(e)
+                }
+                if(snapshot != null && snapshot.exists()) {
+                    listener.ondataChange(snapshot.toObject(Crypto::class.java)!!)
+                }
+            }
+        }
+    }
+
+    fun listenForUpdates(user: User, listener: RealtimeDataListener<User>){
+        val userRef = firebaseFirestore.collection(USERS_COLLECTION)
+            userRef.document(user.username).addSnapshotListener{ snapshot,e ->
+                if(e != null) {
+                    listener.onError(e)
+                }
+                if(snapshot != null && snapshot.exists()) {
+                    listener.ondataChange(snapshot.toObject(User::class.java)!!)
+                }
+            }
+
     }
 }

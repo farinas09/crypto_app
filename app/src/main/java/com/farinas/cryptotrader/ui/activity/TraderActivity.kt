@@ -2,6 +2,7 @@ package com.farinas.cryptotrader.ui.activity
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.farinas.cryptotrader.R
@@ -14,6 +15,7 @@ import com.farinas.cryptotrader.model.Crypto
 import com.farinas.cryptotrader.model.User
 import com.farinas.cryptotrader.network.Callback
 import com.farinas.cryptotrader.network.FirestoreService
+import com.farinas.cryptotrader.network.RealtimeDataListener
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -23,21 +25,22 @@ class TraderActivity : AppCompatActivity(), CryptosAdapterListener {
 
     private lateinit var binding: ActivityTraderBinding
     private lateinit var firestoreService: FirestoreService
-    private var auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val cryptosAdapter: CryptosAdapter = CryptosAdapter(this)
     private var user: User? = null
+    private var username: String = ""
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTraderBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        username = intent.extras?.get(USERNAME_KEY) as String? ?: ""
+
         firestoreService = FirestoreService(FirebaseFirestore.getInstance())
+        binding.usernameTextView.text = username
 
-        binding.usernameTextView.text = intent.extras?.get(USERNAME_KEY) as String? ?: ""
-
-        loadCryptos()
         setupRecyclerView()
+        loadCryptos()
 
         binding.fab.setOnClickListener { view ->
             Snackbar.make(view, getString(R.string.generating_new_cryptos), Snackbar.LENGTH_SHORT)
@@ -46,59 +49,83 @@ class TraderActivity : AppCompatActivity(), CryptosAdapterListener {
     }
 
     private fun loadCryptos() {
-        firestoreService.getCryptos(object: Callback<List<Crypto>?>{
-            override fun onSuccess(result: List<Crypto>?) {
-                if (result != null) {
-                    getUserData(result)
-                    this@TraderActivity.runOnUiThread{
+        firestoreService.getCryptos(object : Callback<List<Crypto>?> {
+            override fun onSuccess(cryptoList: List<Crypto>?) {
 
-                        cryptosAdapter.cryptoList = result
-                        cryptosAdapter.notifyDataSetChanged()
+                firestoreService.findUserById(username, object : Callback<User?> {
+                    override fun onSuccess(result: User?) {
+                        user = result
+                        if (user!!.cryptosList == null) {
+                            val userCryptoList = mutableListOf<Crypto>()
+
+                            for (crypto in cryptoList!!) {
+                                val cryptoUser = Crypto()
+                                cryptoUser.name = crypto.name
+                                cryptoUser.available = 0
+                                cryptoUser.imageUrl = crypto.imageUrl
+                                userCryptoList.add(cryptoUser)
+                            }
+                            user!!.cryptosList = userCryptoList
+                            firestoreService.updateUser(user!!, null)
+                        }
+                        loadUserCryptos()
+                        addRealtimeListeners(user!!, cryptoList!!)
+
                     }
+
+                    override fun onFailded(exception: Exception) {
+                        showGeneralServerErrorMessage()
+                    }
+                })
+
+                this@TraderActivity.runOnUiThread {
+                    cryptosAdapter.cryptoList = cryptoList!!
+                    cryptosAdapter.notifyDataSetChanged()
                 }
             }
 
             override fun onFailded(exception: Exception) {
+                Log.e("TraderActivity", "error loading criptos", exception)
                 showGeneralServerErrorMessage()
             }
         })
     }
 
-    private fun getUserData(cryptos: List<Crypto>) {
-        auth.currentUser?.let {
-            firestoreService.findUserById(it.uid, object: Callback<User?> {
-                override fun onSuccess(result: User?) {
-                    user = result
-                    if (user!!.cryptosList == null) {
-                        val userCryptoList = mutableListOf<Crypto>()
-                        for (crypto in cryptos) {
-                            val cryptoUser = Crypto(
-                                crypto.name,
-                                crypto.imageUrl,
-                                crypto.available,
-                                crypto.id
-                            )
-                            userCryptoList.add(cryptoUser)
-                        }
-                        user!!.cryptosList = userCryptoList
-                        firestoreService.updateUser(user!!, null)
+    private fun addRealtimeListeners(user: User, cryptosList: List<Crypto>) {
+
+        firestoreService.listenForUpdates(user, object : RealtimeDataListener<User> {
+            override fun ondataChange(updatedData: User) {
+                this@TraderActivity.user = updatedData
+                loadUserCryptos()
+            }
+
+            override fun onError(exeption: Exception) {
+                showGeneralServerErrorMessage()
+            }
+        })
+
+        firestoreService.listenForUpdates(cryptosList, object : RealtimeDataListener<Crypto> {
+            override fun ondataChange(updatedData: Crypto) {
+                for ((pos, crypto) in cryptosAdapter.cryptoList.withIndex()) {
+                    if (crypto.name.equals(updatedData.name)) {
+                        crypto.available = updatedData.available
+                        cryptosAdapter.notifyItemChanged(pos)
                     }
-                    loadUserCryptos()
                 }
+            }
 
-                override fun onFailded(exception: Exception) {
-                    showGeneralServerErrorMessage()
-                }
+            override fun onError(exeption: Exception) {
+                showGeneralServerErrorMessage()
+            }
+        })
 
-            })
-        }
     }
 
     private fun loadUserCryptos() {
-        runOnUiThread{
-            if (user!=null && user!!.cryptosList!=null) {
+        runOnUiThread {
+            if (user != null && user!!.cryptosList != null) {
                 binding.infoPanel.removeAllViews()
-                for (crypto in user!!.cryptosList!!){
+                for (crypto in user!!.cryptosList!!) {
                     addUserCryptoRow(crypto)
                 }
             }
@@ -125,14 +152,15 @@ class TraderActivity : AppCompatActivity(), CryptosAdapterListener {
     }
 
     override fun onBuyCryptoClicked(crypto: Crypto) {
-        if(crypto.available>0) {
-            for(userCrypto in user!!.cryptosList!!) {
-                if(userCrypto.name == crypto.name) {
-                    userCrypto.available+=1
+        if (crypto.available > 0) {
+            for (userCrypto in user!!.cryptosList!!) {
+                if (userCrypto.name == crypto.name) {
+                    userCrypto.available += 1
                     break
                 }
             }
             crypto.available--
+            println("contentcripto " + crypto.available)
             firestoreService.updateUser(user!!, null)
             firestoreService.updateCrypto(crypto)
         }
